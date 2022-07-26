@@ -14,13 +14,31 @@ const typeDefs = gql`
     total_dwell_time: Float
   }
 
+  type CsvTraffic {
+    date: String
+    store_id: Float
+    product_id: Float
+    traffic: Float
+    dwells: Float
+    total_dwell_time: Float
+  }
+
   type Demo {
     date: String
     demo_count: Float
   }
 
+  type CsvDemo {
+    date: String
+    store_id: Float
+    product_id: Float
+    demo_count: Float
+  }
+
   type Query {
     traffics(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [Traffic]
+    csvTraffics(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvTraffic]
+    benchmarkTraffics(dates: [String]!, storeIds: [Int]!): [Traffic]
     demos(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [Demo]
   }
 `;
@@ -58,6 +76,58 @@ const resolvers = {
 
       return rows
     },
+    async csvTraffics(parent, args, context, info) {
+      const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
+      const productIds = args['productIds'] ? args['productIds'].join(', ') : ''
+      const dates = args['dates'] ? args['dates'].map(date => `'${moment(date).format('YYYYMMDD')}'`).join(', ') : ''
+
+      if (!storeIds || !productIds || !dates) {
+        return []
+      }
+
+      const query = `SELECT date, store_id, product_id, sum(traffic) traffic, sum(dwells) dwells, sum(total_dwell_time) total_dwell_time
+        FROM (
+          SELECT 
+          date, store_id, product_id, (traffic/ARRAY_LENGTH(product_ids)) traffic, (dwells/ARRAY_LENGTH(product_ids)) dwells, (total_dwell_time/ARRAY_LENGTH(product_ids)) total_dwell_time
+          FROM retail_next.placements_daily
+          JOIN UNNEST(product_ids) AS product_id
+          WHERE EXISTS (SELECT *
+                        FROM UNNEST(product_ids) AS x
+                        WHERE x IN (${productIds}))
+          AND date IN (${dates})
+          AND store_id IN (${storeIds})
+        ) t1
+        WHERE t1.product_id IN (#{product_ids.join(", ")})
+        GROUP BY 1, 2, 3`;
+
+      const [job] = await bigqueryClient.createQueryJob({ query: query });
+      const [rows] = await job.getQueryResults();
+
+      return rows
+    },
+    async benchmarkTraffics(parent, args, context, info) {
+      const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
+      const dates = args['dates'] ? args['dates'].map(date => `'${moment(date).format('YYYYMMDD')}'`).join(', ') : ''
+
+      if (!storeIds || !dates) {
+        return []
+      }
+
+      const query = `SELECT date, avg(traffic) traffic, avg(dwells) dwells, avg(total_dwell_time) total_dwell_time
+        FROM (
+          SELECT date, product_id, (traffic/ARRAY_LENGTH(product_ids)) traffic, (dwells/ARRAY_LENGTH(product_ids)) dwells, (total_dwell_time/ARRAY_LENGTH(product_ids)) total_dwell_time
+          FROM retail_next.placements_daily
+          JOIN UNNEST(product_ids) AS product_id
+          WHERE date IN (${dates})
+          AND store_id IN (${storeIds})
+        ) t1
+        GROUP BY 1`;
+
+      const [job] = await bigqueryClient.createQueryJob({ query: query });
+      const [rows] = await job.getQueryResults();
+
+      return rows
+    },
     async demos(parent, args, context, info) {
       const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
       const productIds = args['productIds'] ? args['productIds'].join(', ') : ''
@@ -79,6 +149,32 @@ const resolvers = {
       `;
 
       console.log(query)
+
+      const [job] = await bigqueryClient.createQueryJob({ query: query });
+      const [rows] = await job.getQueryResults();
+
+      return rows
+    },
+    async csvDemos(parent, args, context, info) {
+      const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
+      const productIds = args['productIds'] ? args['productIds'].join(', ') : ''
+      const dates = args['dates'] ? args['dates'].map(date => `'${moment(date).format('YYYY-MM-DD')}'`) : []
+
+      if (!storeIds || !productIds || !dates || dates.length < 1) {
+        return []
+      }
+
+      const query = `select
+        FORMAT_DATE('%Y%m%d', DATE(TIMESTAMP(timestamp), 'America/Los_Angeles')) AS date, store_id, product_id, sum(value) AS demo_count
+        FROM metrics.displays
+        WHERE
+          product_id IN (${productIds})
+          AND store_id IN (${storeIds})
+          AND DATE(TIMESTAMP(timestamp), 'America/Los_Angeles') >= ${dates[0]}
+          AND DATE(TIMESTAMP(timestamp), 'America/Los_Angeles') <= ${dates[dates.length - 1]}
+          AND metric_name = 'demo.completed'
+        GROUP BY 1, 2, 3
+      `;
 
       const [job] = await bigqueryClient.createQueryJob({ query: query });
       const [rows] = await job.getQueryResults();
