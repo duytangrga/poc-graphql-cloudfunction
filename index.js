@@ -40,6 +40,7 @@ const typeDefs = gql`
     csvTraffics(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvTraffic]
     benchmarkTraffics(dates: [String]!, storeIds: [Int]!): [Traffic]
     demos(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [Demo]
+    csvDemos(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvDemo]
   }
 `;
 
