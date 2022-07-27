@@ -17,5 +17,5 @@ Deploy to cloudfunction
     https://cloud.google.com/sdk/docs/install
       
 2. Running this command
-         
-    gcloud functions deploy retailnext-query --entry-point handler --runtime nodejs16 --trigger-http
+
+        gcloud functions deploy retailnext-query --entry-point handler --runtime nodejs16 --trigger-http
