@@ -12,6 +12,9 @@ Run locally from this repo
     
 Deploy to cloudfunction
     1. Install Google Cloud CLI
-      https://cloud.google.com/sdk/docs/install
-    2. Running this command
+    
+       https://cloud.google.com/sdk/docs/install
       
+    2. Running this command
+         
+       gcloud functions deploy retailnext-query --entry-point handler --runtime nodejs16 --trigger-http
