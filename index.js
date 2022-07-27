@@ -1,5 +1,5 @@
-// const { ApolloServer, gql } = require('apollo-server-cloud-functions');
-const { ApolloServer, gql } = require('apollo-server');
+const { ApolloServer, gql } = (!process.env.NODE_ENV || process.env.NODE_ENV === 'local') ? require('apollo-server') : require('apollo-server-cloud-functions');  
+
 const { BigQuery } = require('@google-cloud/bigquery');
 const moment = require('moment');
 
@@ -98,7 +98,7 @@ const resolvers = {
           AND date IN (${dates})
           AND store_id IN (${storeIds})
         ) t1
-        WHERE t1.product_id IN (#{product_ids.join(", ")})
+        WHERE t1.product_id IN (${productIds})
         GROUP BY 1, 2, 3`;
 
       const [job] = await bigqueryClient.createQueryJob({ query: query });
@@ -192,10 +192,11 @@ const server = new ApolloServer({
   cache: 'bounded',
 });
 
-// The `listen` method launches a web server.
-server.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}`);
-});
-
-
-// exports.handler = server.createHandler();
+if (!process.env.NODE_ENV || process.env.NODE_ENV === 'local') {
+  // The `listen` method launches a web server.
+  server.listen().then(({ url }) => {
+    console.log(`🚀  Server ready at ${url}`);
+  });  
+} else {
+  exports.handler = server.createHandler();
+}
