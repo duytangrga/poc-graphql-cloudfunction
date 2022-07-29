@@ -37,10 +37,10 @@ const typeDefs = gql`
 
   type Query {
     traffics(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [Traffic]
-    csvTraffics(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvTraffic]
-    benchmarkTraffics(dates: [String]!, storeIds: [Int]!): [Traffic]
+    csv_traffics(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvTraffic]
+    benchmark_traffics(dates: [String]!, storeIds: [Int]!): [Traffic]
     demos(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [Demo]
-    csvDemos(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvDemo]
+    csv_demos(dates: [String]!, storeIds: [Int]!, productIds: [Int]!): [CsvDemo]
   }
 `;
 
@@ -77,7 +77,7 @@ const resolvers = {
 
       return rows
     },
-    async csvTraffics(parent, args, context, info) {
+    async csv_traffics(parent, args, context, info) {
       const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
       const productIds = args['productIds'] ? args['productIds'].join(', ') : ''
       const dates = args['dates'] ? args['dates'].map(date => `'${moment(date).format('YYYYMMDD')}'`).join(', ') : ''
@@ -106,7 +106,7 @@ const resolvers = {
 
       return rows
     },
-    async benchmarkTraffics(parent, args, context, info) {
+    async benchmark_traffics(parent, args, context, info) {
       const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
       const dates = args['dates'] ? args['dates'].map(date => `'${moment(date).format('YYYYMMDD')}'`).join(', ') : ''
 
@@ -156,7 +156,7 @@ const resolvers = {
 
       return rows
     },
-    async csvDemos(parent, args, context, info) {
+    async csv_demos(parent, args, context, info) {
       const storeIds = args['storeIds'] ? args['storeIds'].join(', ') : ''
       const productIds = args['productIds'] ? args['productIds'].join(', ') : ''
       const dates = args['dates'] ? args['dates'].map(date => `'${moment(date).format('YYYY-MM-DD')}'`) : []
